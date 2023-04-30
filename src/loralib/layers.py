@@ -12,7 +12,7 @@ class LoraLinear(nn.Linear):
     
     is_lora = True
     
-    def __init__(self,  layer: nn.Conv2d, rank: Optional[int] = None, fraccion: Optional[float] = None):
+    def __init__(self,  layer: nn.Conv2d, lora_alpha:float = 1, rank: Optional[int] = None, fraccion: Optional[float] = None):
         if rank is None and fraccion is None:
             raise ValueError("Rank and fraccion can't be None at the same time")
         named_inputs = [arg for arg in inspect.getfullargspec(nn.Linear).args if arg != 'self']
@@ -22,21 +22,27 @@ class LoraLinear(nn.Linear):
         del self.weight
         if fraccion is not None:
             rank = int(fraccion * layer.weight.size(1))
+        self.lora_alpha = lora_alpha
+        self.scaling = lora_alpha / rank
         self.original_weight = nn.Parameter(layer.weight.data.clone(), requires_grad=False)
-        self.lora_a = nn.Parameter(torch.empty(layer.weight.size(0), rank), requires_grad=True)
-        self.lora_b = nn.Parameter(torch.empty(rank, layer.weight.size(1)), requires_grad=True)
-        nn.init.kaiming_uniform_(self.lora_a, a=np.sqrt(5))
-        nn.init.zeros_(self.lora_b)
+        self.lora_A = nn.Parameter(torch.empty(layer.weight.size(0), rank), requires_grad=True)
+        self.lora_B = nn.Parameter(torch.empty(rank, layer.weight.size(1)), requires_grad=True)
+        nn.init.kaiming_uniform_(self.lora_A, a=np.sqrt(5))
+        nn.init.zeros_(self.lora_B)
         if self.input_kwargs['bias']:
             self.bias = nn.Parameter(layer.bias.data.clone(), requires_grad=False)
+            
+    @property
+    def weight_delta(self):
+        return torch.mm(self.lora_A, self.lora_B)* self.scaling
     
     @property
     def weight(self):
-        return self.original_weight + torch.mm(self.lora_a, self.lora_b)
+        return self.original_weight + self.weight_delta
     
     def to_regular(self) -> nn.Linear: 
         layer = nn.Linear(**self.input_kwargs)
-        layer.weight.data = self.weight.data
+        layer.weight.data = self.weight
         layer.bias.data = self.bias.data
         return layer
 
@@ -47,7 +53,7 @@ class LoraEmbedding(nn.Embedding):
     
     is_lora = True
     
-    def __init__(self, layer: nn.Embedding, rank: Optional[int] = None, fraccion: Optional[float] = None):
+    def __init__(self, layer: nn.Embedding, lora_alpha:float = 1, rank: Optional[int] = None, fraccion: Optional[float] = None):
         if rank is None and fraccion is None:
             raise ValueError("Rank and fraccion can't be None at the same time")
         named_inputs = [arg for arg in inspect.getfullargspec(nn.Embedding).args if arg != 'self']
@@ -56,22 +62,22 @@ class LoraEmbedding(nn.Embedding):
         del self.weight
         if fraccion is not None:
             rank = int(fraccion * layer.weight.size(1))
+        self.lora_alpha = lora_alpha
+        self.scaling = lora_alpha / rank
+
         self.original_weight = nn.Parameter(layer.weight.data.clone(), requires_grad=False)
-        self.lora_a = nn.Parameter(torch.empty(layer.weight.size(0), rank), requires_grad=True)
-        self.lora_b = nn.Parameter(torch.empty((rank, *layer.weight.shape[1:])), requires_grad=True)
-        nn.init.kaiming_uniform_(self.lora_a, a=np.sqrt(5))
-        nn.init.zeros_(self.lora_b)
+        self.lora_A = nn.Parameter(torch.empty(layer.weight.size(0), rank), requires_grad=True)
+        self.lora_B = nn.Parameter(torch.empty((rank, *layer.weight.shape[1:])), requires_grad=True)
+        nn.init.kaiming_uniform_(self.lora_A, a=np.sqrt(5))
+        nn.init.zeros_(self.lora_B)
+        
+    @property
+    def weight_delta(self):
+        return self.lora_A @ self.lora_B * self.scaling
     
     @property
     def weight(self):
-        """
-        i -> in_features
-        r -> rank
-        o -> out_features
-        k -> kernel_size_1
-        j -> kernel_size_2
-        """
-        return self.original_weight +  self.lora_A @ self.lora_B
+        return self.original_weight + self.weight_delta
     
     
     def to_regular(self) -> nn.Embedding: 
@@ -79,14 +85,14 @@ class LoraEmbedding(nn.Embedding):
         Converts the LoraEmbedding layer to a regular Embedding layer
         """
         layer = nn.Embedding(**self.input_kwargs)
-        layer.weight.data = self.weight.data
+        layer.weight.data = self.weight
         return layer 
     
 class LoraConv2d(nn.Conv2d):
     
     is_lora = True
     
-    def __init__(self, layer: nn.Conv2d, rank: Optional[int] = None, fraccion: Optional[float] = None):
+    def __init__(self, layer: nn.Conv2d, lora_alpha:float = 1, rank: Optional[int] = None, fraccion: Optional[float] = None):
         if rank is None and fraccion is None:
             raise ValueError("Rank and fraccion can't be None at the same time")
         named_inputs = [arg for arg in inspect.getfullargspec(nn.Conv2d).args if arg != 'self']
@@ -96,16 +102,19 @@ class LoraConv2d(nn.Conv2d):
         del self.weight
         if fraccion is not None:
             rank = int(fraccion * layer.weight.size(1))
+        self.lora_alpha = lora_alpha
+        self.scaling = lora_alpha / rank
+
         self.original_weight = nn.Parameter(layer.weight.data.clone(), requires_grad=False)
-        self.lora_a = nn.Parameter(torch.empty(layer.weight.size(0), rank), requires_grad=True)
-        self.lora_b = nn.Parameter(torch.empty((rank, *layer.weight.shape[1:])), requires_grad=True)
-        nn.init.kaiming_uniform_(self.lora_a, a=np.sqrt(5))
-        nn.init.zeros_(self.lora_b)
+        self.lora_A = nn.Parameter(torch.empty(layer.weight.size(0), rank), requires_grad=True)
+        self.lora_B = nn.Parameter(torch.empty((rank, *layer.weight.shape[1:])), requires_grad=True)
+        nn.init.kaiming_uniform_(self.lora_A, a=np.sqrt(5))
+        nn.init.zeros_(self.lora_B)
         if self.input_kwargs['bias']:
             self.bias = nn.Parameter(layer.bias.data.clone(), requires_grad=False)
     
     @property
-    def weight(self):
+    def weight_delta(self):
         """
         i -> in_features
         r -> rank
@@ -113,51 +122,21 @@ class LoraConv2d(nn.Conv2d):
         k -> kernel_size_1
         j -> kernel_size_2
         """
-        return self.original_weight +  torch.einsum('ir, rokj -> iokj', self.lora_a, self.lora_b)
+        return torch.einsum('ir, rokj -> iokj', self.lora_A, self.lora_B) * self.scaling
+    
+    
+    @property
+    def weight(self):
+        return self.original_weight +  self.weight_delta
     
     
     def to_regular(self) -> nn.Conv2d: 
         layer = nn.Conv2d(**self.input_kwargs)
-        layer.weight.data = self.weight.data
+        layer.weight.data = self.weight
         if self.input_kwargs['bias']:
             layer.bias.data = self.bias.data
         return layer
     
-class LoraEmbedding(nn.Embedding):
-    
-    is_lora = True
-    
-    def __init__(self, layer: nn.Embedding, rank: Optional[int] = None, fraccion: Optional[float] = None):
-        if rank is None and fraccion is None:
-            raise ValueError("Rank and fraccion can't be None at the same time")
-        named_inputs = [arg for arg in inspect.getfullargspec(nn.Embedding).args if arg != 'self']
-        self.input_kwargs = {k:v for k,v in layer.__dict__.items() if k in named_inputs}
-        super().__init__(**self.input_kwargs)
-        del self.weight
-        if fraccion is not None:
-            rank = int(fraccion * layer.weight.size(1))
-        self.original_weight = nn.Parameter(layer.weight.data.clone(), requires_grad=False)
-        self.lora_a = nn.Parameter(torch.empty(layer.weight.size(0), rank), requires_grad=True)
-        self.lora_b = nn.Parameter(torch.empty((rank, *layer.weight.shape[1:])), requires_grad=True)
-        nn.init.kaiming_uniform_(self.lora_a, a=np.sqrt(5))
-        nn.init.zeros_(self.lora_b)
-    
-    @property
-    def weight(self):
-        """
-        i -> in_features
-        r -> rank
-        o -> out_features
-        k -> kernel_size_1
-        j -> kernel_size_2
-        """
-        return self.original_weight +  self.lora_a @ self.lora_b
-    
-    
-    def to_regular(self) -> nn.Embedding: 
-        layer = nn.Embedding(**self.input_kwargs)
-        layer.weight.data = self.weight.data
-        return layer
     
     
 LoraEmbeddingType = Type[LoraEmbedding]
