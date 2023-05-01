@@ -3,3 +3,4 @@ ruff
 black
 mypy
 timm
+pylint
