@@ -8,7 +8,7 @@
 
 [tool.black]
 line-length = 119
-target-version = ['py36', 'py37', 'py38']
+target-version = ['py37', 'py38', 'py39']
 include = '\.pyi?$'
 exclude = '''
 /(
@@ -27,7 +27,6 @@ exclude = '''
 
 [tool.pylint.TYPECHECK]
 generated-members = ["numpy.*", "torch.*", "cv2.*"]
-ignored-modules = ["pycocotools"]
 disable = [
     "consider-iterating-dictionary",
     "consider-using-dict-items",
@@ -59,25 +58,6 @@ warn_redundant_casts = true
 no_implicit_optional = true
 strict_optional = true
 
-[[tool.mypy.overrides]]
-module = [
-  "feedback.models.*",  # TODO: Add Typing
-  "feedback.data.*",     # TODO: Add Typing
-  "feedback.*"
-]
-ignore_errors = true
-
-[tool.flake8]
-max-line-length = 120
-exclude =['.git','__pycache__','docs/source/conf.py','build','dist','tests', '__init__.py']
-ignore = ['I101','D100','D101','D102','D103','D104','D105','D107','D401','E203','I900','N802','N806','N812','W503','S311','S605','S607']
-
-
-[tool.autoflake]
-recursive = true
-remove-all-unused-imports = true
-in-place=true
-exclude =['.git','__pycache__','docs/source/conf.py','build','dist','tests', '__init__.py']
 
 [tool.ruff]
 # Enable pycodestyle (`E`) and Pyflakes (`F`) codes by default.
