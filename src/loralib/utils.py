@@ -70,39 +70,40 @@ def undo_lora(model: nn.Module) -> nn.Module:
 
 
 def mark_only_lora_as_trainable(model: nn.Module, bias: BiasTypes = "none") -> nn.Module:
+    if bias not in ["none", "all", "lora_only"]:
+        raise ValueError(f"Unknown bias option {bias} chose one of none, all, lora_only")
     for name, param in model.named_parameters():
         if "lora_" not in name:
             param.requires_grad = False
     if bias == "none":
         return model
-    elif bias == "all":
-        for n, p in model.named_parameters():
-            if "bias" in n:
-                p.requires_grad = True
-    elif bias == "lora_only":
+    if bias == "all":
+        for name, param in model.named_parameters():
+            if "bias" in name:
+                param.requires_grad = True
+        return model
+    if bias == "lora_only":
         for module in model.modules():
             if getattr(module, "is_lora", False) and hasattr(module, "bias") and module.bias is not None:
                 module.bias.requires_grad = True
-    else:
-        raise ValueError(f"Unknown bias option {bias} chose one of none, all, lora_only")
-
     return model
 
 
+
 def lora_state_dict(model: nn.Module, bias: BiasTypes = "none") -> Dict[str, torch.Tensor]:
+    if bias not in ["none", "all", "lora_only"]:
+        raise ValueError(f"Unknown bias option {bias} chose one of none, all, lora_only")
     lora_dict = {name: module for name, module in model.named_modules() if getattr(module, "is_lora", False)}
     lora_dict_weights = {f"{name}.weight": module.weight for name, module in lora_dict.items()}
     if bias == "none":
         return lora_dict_weights
-    elif bias == "all":
+    if bias == "all":
         bias_dict = {name: param for name, param in model.named_parameters() if name.split(".")[-1] == "bias"}
         return {**lora_dict_weights, **bias_dict}
-    elif bias == "lora_only":
+    if bias == "lora_only":
         lora_dict_bias = {
             f"{name}.bias": module.bias
             for name, module in lora_dict.items()
             if hasattr(module, "bias") and module.bias is not None
         }
         return {**lora_dict_weights, **lora_dict_bias}
-    else:
-        raise ValueError(f"Unknown bias option {bias} chose one of none, all, lora_only")

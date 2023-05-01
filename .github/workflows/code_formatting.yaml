@@ -1,0 +1,42 @@
+name: Code Consistency
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+jobs:
+  code_formatting:
+    name: code styling
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.7, 3.8, 3.9]
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+      # You can test your matrix by printing the current Python version
+      - name: Display Python version
+        run: python -c "import sys; print(sys.version)"
+      - name: Install wheel
+        run: |
+          python -m pip install --upgrade pip
+          pip install --upgrade pip setuptools
+          pip install wheel
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+          pip install -r requirements_dev.txt
+      - name: Run black
+        run: black --check src
+      - name: Run Ruff
+        run: ruff src
+      - name: Run Pylint
+        run: pylint --fail-under=8 src
+      # - name: Run Mypy
+      #   run: mypy --show-error-codes src
+      - name: tests
+        run: pytest
