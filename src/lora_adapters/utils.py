@@ -22,6 +22,7 @@ BiasTypes = Literal["none", "all", "lora_only"]
 def apply_adapter(
     model: nn.Module,
     adapter_class: LoraLayerType,
+    lora_alpha: float = 1.0,
     rank: Optional[int] = None,
     fraccion: Optional[float] = None,
     regex_pattern: str = ".*",
@@ -31,7 +32,8 @@ def apply_adapter(
     Args:
         model: Model to be adapted.
         adapter_class: Adapter class to be applied to the models layers.
-            Default: ``1``
+        lora_alpha: Scaling factor to apply to the Low Rank Adapter.
+            Default: ``1.0``
         rank: Rank to adapt the layer.
             Default: ``None``
         frac: Fraccion of the orignal layer dimension to establish the rank of the Adapter.
@@ -49,11 +51,12 @@ def apply_adapter(
         module = model._modules[name]
         module_name_list = name_list + [name]
         if isinstance(module, adapter_class.__bases__[-1]) and re.match(regex_pattern, ".".join(module_name_list)):
-            new_modules[name] = adapter_class(module, rank=rank, fraccion=fraccion)
+            new_modules[name] = adapter_class(module, lora_alpha=lora_alpha, rank=rank, fraccion=fraccion)
         else:
             new_modules[name] = apply_adapter(
                 module,
                 adapter_class,
+                lora_alpha=lora_alpha,
                 rank=rank,
                 fraccion=fraccion,
                 regex_pattern=regex_pattern,
