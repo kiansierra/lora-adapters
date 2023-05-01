@@ -1,0 +1,112 @@
+# From https://github.com/ternaus/retinaface/blob/master/pyproject.toml
+# Example configuration for Black.
+
+# NOTE: you have to use single-quoted strings in TOML for regular expressions.
+# It's the equivalent of r-strings in Python.  Multiline strings are treated as
+# verbose regular expressions by Black.  Use [ ] to denote a significant space
+# character.
+
+[tool.black]
+line-length = 119
+target-version = ['py36', 'py37', 'py38']
+include = '\.pyi?$'
+exclude = '''
+/(
+    \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | _build
+  | buck-out
+  | build
+  | dist
+)/
+'''
+
+[tool.pylint.TYPECHECK]
+generated-members = ["numpy.*", "torch.*", "cv2.*"]
+ignored-modules = ["pycocotools"]
+disable = [
+    "consider-iterating-dictionary",
+    "consider-using-dict-items",
+    "missing-docstring",
+    "too-many-arguments",
+    "too-many-instance-attributes",
+    "too-many-locals",
+    "too-few-public-methods",
+    "unsubscriptable-object",
+    "duplicate-code",  # similarity check unworkable with plugins
+]
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts = "-p no:warnings"
+testpaths = ["tests"]
+
+
+[tool.pylint.'MESSAGES CONTROL']
+max-line-length = 120
+disable = ["C0114", "C0115", "C0116"]
+
+
+[tool.mypy]
+ignore_missing_imports = true
+disallow_untyped_defs = true
+check_untyped_defs = true
+warn_redundant_casts = true
+no_implicit_optional = true
+strict_optional = true
+
+[[tool.mypy.overrides]]
+module = [
+  "feedback.models.*",  # TODO: Add Typing
+  "feedback.data.*",     # TODO: Add Typing
+  "feedback.*"
+]
+ignore_errors = true
+
+[tool.flake8]
+max-line-length = 120
+exclude =['.git','__pycache__','docs/source/conf.py','build','dist','tests', '__init__.py']
+ignore = ['I101','D100','D101','D102','D103','D104','D105','D107','D401','E203','I900','N802','N806','N812','W503','S311','S605','S607']
+
+
+[tool.autoflake]
+recursive = true
+remove-all-unused-imports = true
+in-place=true
+exclude =['.git','__pycache__','docs/source/conf.py','build','dist','tests', '__init__.py']
+
+[tool.ruff]
+# Enable pycodestyle (`E`) and Pyflakes (`F`) codes by default.
+select = ["E", "F"]
+ignore = []
+
+# Exclude a variety of commonly ignored directories.
+exclude = [
+    ".bzr",
+    ".direnv",
+    ".eggs",
+    ".git",
+    ".hg",
+    ".mypy_cache",
+    ".nox",
+    ".pants.d",
+    ".pytype",
+    ".ruff_cache",
+    ".svn",
+    ".tox",
+    ".venv",
+    "__pypackages__",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+    "node_modules",
+    "venv",
+    "__init__.py"
+]
+
+line-length = 120
