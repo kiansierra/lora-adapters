@@ -4,7 +4,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
 setup(
-    name="loralib",
+    name="lora-adapters",
     version="0.1.0",
     author="Kian Sierra McGettigan",
     author_email="kiansierra90@gmail.com",
