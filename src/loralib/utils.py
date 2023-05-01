@@ -1,9 +1,10 @@
 import re
 from collections import OrderedDict
-from typing import Dict, List, Literal, Optional
+from typing import Dict, List, Optional
 
 import torch
 from torch import nn
+from typing_extensions import Literal
 
 from .layers import LoraLayerType
 
@@ -87,7 +88,6 @@ def mark_only_lora_as_trainable(model: nn.Module, bias: BiasTypes = "none") -> n
             if getattr(module, "is_lora", False) and hasattr(module, "bias") and module.bias is not None:
                 module.bias.requires_grad = True
     return model
-
 
 
 def lora_state_dict(model: nn.Module, bias: BiasTypes = "none") -> Dict[str, torch.Tensor]:

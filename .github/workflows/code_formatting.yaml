@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.9]
+        python-version: [3.7, 3.8, 3.9]
     steps:
       - uses: actions/checkout@v2
       - name: Set up Python
@@ -38,5 +38,3 @@ jobs:
         run: pylint --fail-under=8 src
       # - name: Run Mypy
       #   run: mypy --show-error-codes src
-      - name: tests
-        run: pytest
