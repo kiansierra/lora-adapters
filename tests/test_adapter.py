@@ -1,10 +1,10 @@
 import pytest
 import timm
 import torch
+from lora_adapters import (LoraConv2d, apply_adapter, lora_state_dict,
+                           mark_only_lora_as_trainable, undo_lora)
 from torch import nn
 from torch.optim import AdamW
-
-from loralib import LoraConv2d, apply_adapter, lora_state_dict, mark_only_lora_as_trainable, undo_lora
 
 
 def test_resnet50():

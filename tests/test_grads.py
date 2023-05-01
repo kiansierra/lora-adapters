@@ -1,8 +1,7 @@
 import pytest
 import torch
+from lora_adapters import LoraConv2d, LoraEmbedding, LoraLinear
 from torch import nn
-
-from loralib import LoraConv2d, LoraEmbedding, LoraLinear
 
 
 @pytest.mark.parametrize("input_dim,bias", [[64, True], [128, False]])

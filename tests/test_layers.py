@@ -1,6 +1,6 @@
 import pytest
 import torch
-from loralib import LoraConv2d, LoraEmbedding, LoraLinear
+from lora_adapters import LoraConv2d, LoraEmbedding, LoraLinear
 from torch import nn
 
 
