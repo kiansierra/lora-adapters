@@ -13,7 +13,7 @@ class LoraLinear(nn.Linear):
     Args:
         layer: Original layer to be adapted.
         lora_alpha: Scaling factor to apply to the Low Rank Adapter.
-            Default: ``1``
+            Default: ``1.0``
         rank: Rank to adapt the layer.
             Default: ``None``
         frac: Fraccion of the orignal layer dimension to establish the rank of the Adapter.
@@ -70,7 +70,7 @@ class LoraEmbedding(nn.Embedding):
     Args:
         layer: Original layer to be adapted.
         lora_alpha: Scaling factor to apply to the Low Rank Adapter.
-            Default: ``1``
+            Default: ``1.0``
         rank: Rank to adapt the layer.
             Default: ``None``
         frac: Fraccion of the orignal layer dimension to establish the rank of the Adapter.
@@ -123,7 +123,7 @@ class LoraConv2d(nn.Conv2d):
     Args:
         layer: Original layer to be adapted.
         lora_alpha: Scaling factor to apply to the Low Rank Adapter.
-            Default: ``1``
+            Default: ``1.0``
         rank: Rank to adapt the layer.
             Default: ``None``
         frac: Fraccion of the orignal layer dimension to establish the rank of the Adapter.

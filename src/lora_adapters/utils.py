@@ -18,18 +18,29 @@ __all__ = [
 BiasTypes = Literal["none", "all", "lora_only"]
 
 
+# pylint: disable=protected-access
 def apply_adapter(
     model: nn.Module,
     adapter_class: LoraLayerType,
+    lora_alpha: float = 1.0,
     rank: Optional[int] = None,
     fraccion: Optional[float] = None,
     regex_pattern: str = ".*",
     name_list: Optional[List[str]] = None,
 ) -> nn.Module:
-    """
-    model: nn.Module to apply the adapter
-    adapter_class: LoraLayerType class to apply
-
+    """Adapts the models layer to the adapter_class.
+    Args:
+        model: Model to be adapted.
+        adapter_class: Adapter class to be applied to the models layers.
+        lora_alpha: Scaling factor to apply to the Low Rank Adapter.
+            Default: ``1.0``
+        rank: Rank to adapt the layer.
+            Default: ``None``
+        frac: Fraccion of the orignal layer dimension to establish the rank of the Adapter.
+            Default: ``None``
+        regex_pattern: Regular expression to match the layers to be adapted.
+    Returns:
+        Adapted Model
     """
     if len(model._modules) == 0:
         return model
@@ -40,11 +51,12 @@ def apply_adapter(
         module = model._modules[name]
         module_name_list = name_list + [name]
         if isinstance(module, adapter_class.__bases__[-1]) and re.match(regex_pattern, ".".join(module_name_list)):
-            new_modules[name] = adapter_class(module, rank=rank, fraccion=fraccion)
+            new_modules[name] = adapter_class(module, lora_alpha=lora_alpha, rank=rank, fraccion=fraccion)
         else:
             new_modules[name] = apply_adapter(
                 module,
                 adapter_class,
+                lora_alpha=lora_alpha,
                 rank=rank,
                 fraccion=fraccion,
                 regex_pattern=regex_pattern,
@@ -56,6 +68,12 @@ def apply_adapter(
 
 
 def undo_lora(model: nn.Module) -> nn.Module:
+    """
+    Args:
+        model: Reveses LoRa adaptations and keeps new updated weights.
+    Returns:
+        Unadapted Model
+    """
     if len(model._modules) == 0:
         return model
     new_modules = OrderedDict()
@@ -70,7 +88,18 @@ def undo_lora(model: nn.Module) -> nn.Module:
     return model
 
 
+# pylint: enable=protected-access
+
+
 def mark_only_lora_as_trainable(model: nn.Module, bias: BiasTypes = "none") -> nn.Module:
+    """
+    Args:
+        model: Model to updated trainable layers.
+        bias: Trainable Bias option to be applied to the model.
+            Default: ``none``
+    returns:
+        Model with only the lora layers as trainable and the chosen biases.
+    """
     if bias not in ["none", "all", "lora_only"]:
         raise ValueError(f"Unknown bias option {bias} chose one of none, all, lora_only")
     for name, param in model.named_parameters():
@@ -91,6 +120,14 @@ def mark_only_lora_as_trainable(model: nn.Module, bias: BiasTypes = "none") -> n
 
 
 def lora_state_dict(model: nn.Module, bias: BiasTypes = "none") -> Dict[str, torch.Tensor]:
+    """
+    Args:
+        model: Model to obtain the LoRa state dict.
+        bias: Bias option to be saved from the model. Should be set to the same as in mark_only_lora_as_trainable.
+            Default: ``none``
+    returns:
+        State Dict only containing LoRa layers weights and selected bias.
+    """
     if bias not in ["none", "all", "lora_only"]:
         raise ValueError(f"Unknown bias option {bias} chose one of none, all, lora_only")
     lora_dict = {name: module for name, module in model.named_modules() if getattr(module, "is_lora", False)}
