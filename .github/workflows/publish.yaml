@@ -2,12 +2,10 @@ name: Publish Python 🐍 distributions 📦 to PyPI and TestPyPI
 
 on:
   workflow_run:
-    workflows: ["Run Tests"]
+    workflows: ["Run Tests", "Code Consistency"]
     branches: [main]
     types:
       - completed
-  push:
-    branches: [main, master]
 
 jobs:
   build-n-publish:
