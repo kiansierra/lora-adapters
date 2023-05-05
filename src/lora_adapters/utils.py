@@ -8,12 +8,7 @@ from typing_extensions import Literal
 
 from .layers import LoraLayerType
 
-__all__ = [
-    "apply_adapter",
-    "undo_lora",
-    "mark_only_lora_as_trainable",
-    "lora_state_dict",
-]
+__all__ = ["apply_adapter", "undo_lora", "mark_only_lora_as_trainable", "lora_state_dict", "freeze_bn"]
 
 BiasTypes = Literal["none", "all", "lora_only"]
 
@@ -22,9 +17,8 @@ BiasTypes = Literal["none", "all", "lora_only"]
 def apply_adapter(
     model: nn.Module,
     adapter_class: LoraLayerType,
+    rank: int,
     lora_alpha: float = 1.0,
-    rank: Optional[int] = None,
-    fraccion: Optional[float] = None,
     regex_pattern: str = ".*",
     name_list: Optional[List[str]] = None,
 ) -> nn.Module:
@@ -35,8 +29,6 @@ def apply_adapter(
         lora_alpha: Scaling factor to apply to the Low Rank Adapter.
             Default: ``1.0``
         rank: Rank to adapt the layer.
-            Default: ``None``
-        frac: Fraccion of the orignal layer dimension to establish the rank of the Adapter.
             Default: ``None``
         regex_pattern: Regular expression to match the layers to be adapted.
     Returns:
@@ -50,15 +42,14 @@ def apply_adapter(
     for name in model._modules:
         module = model._modules[name]
         module_name_list = name_list + [name]
-        if isinstance(module, adapter_class.__bases__[-1]) and re.match(regex_pattern, ".".join(module_name_list)):
-            new_modules[name] = adapter_class(module, lora_alpha=lora_alpha, rank=rank, fraccion=fraccion)
+        if isinstance(module, adapter_class.__bases__[0]) and re.match(regex_pattern, ".".join(module_name_list)):
+            new_modules[name] = adapter_class(module, lora_alpha=lora_alpha, rank=rank)
         else:
             new_modules[name] = apply_adapter(
                 module,
                 adapter_class,
                 lora_alpha=lora_alpha,
                 rank=rank,
-                fraccion=fraccion,
                 regex_pattern=regex_pattern,
                 name_list=module_name_list,
             )
@@ -144,3 +135,23 @@ def lora_state_dict(model: nn.Module, bias: BiasTypes = "none") -> Dict[str, tor
             if hasattr(module, "bias") and module.bias is not None
         }
         return {**lora_dict_weights, **lora_dict_bias}
+
+
+def freeze_bn(model: nn.Module) -> Dict[str, torch.Tensor]:
+    """
+    Args:
+        model: Model to obtain the LoRa state dict.
+        bias: Bias option to be saved from the model. Should be set to the same as in mark_only_lora_as_trainable.
+            Default: ``none``
+    returns:
+        State Dict only containing LoRa layers weights and selected bias.
+    """
+    for module in model.modules():
+        # print(module)
+        if isinstance(module, nn.BatchNorm2d):
+            if hasattr(module, "weight"):
+                module.weight.requires_grad_(False)
+            if hasattr(module, "bias"):
+                module.bias.requires_grad_(False)
+            module.eval()
+    return model

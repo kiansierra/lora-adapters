@@ -1,10 +1,10 @@
 import pytest
 import timm
 import torch
-from lora_adapters import (LoraConv2d, apply_adapter, lora_state_dict,
-                           mark_only_lora_as_trainable, undo_lora)
 from torch import nn
 from torch.optim import AdamW
+
+from lora_adapters import LoraConv2d, apply_adapter, freeze_bn, lora_state_dict, mark_only_lora_as_trainable, undo_lora
 
 
 def test_resnet50():
@@ -39,6 +39,7 @@ def test_resnet50_training():
         loss.backward()
         optimizer.step()
 
+    model.eval()
     output_lora = model(inputs)
     model = undo_lora(model)
     output = model(inputs)
@@ -52,6 +53,7 @@ def test_resnet50_updates(bias):
     model = timm.create_model("resnet50", pretrained=True).to(device)
     model = apply_adapter(model, LoraConv2d, rank=16)
     model = mark_only_lora_as_trainable(model, bias=bias)
+    model = freeze_bn(model)
     optimizer = AdamW((param for param in model.parameters() if param.requires_grad), lr=1e-3)
     inputs = torch.randn(1, 3, 224, 224).to(device)
     targets = torch.randint(0, 1000, (1,)).to(device)
@@ -62,10 +64,12 @@ def test_resnet50_updates(bias):
         loss.backward()
         optimizer.step()
 
+    model.eval()
     output_lora = model(inputs)
     updates = lora_state_dict(model, bias=bias)
-    model = timm.create_model("resnet50", pretrained=True).to(device)
-    model.load_state_dict(updates, strict=False)
+    model = timm.create_model("resnet50", pretrained=True).to(device).eval()
+    loaded_keys = model.load_state_dict(updates, strict=False)
+    assert len(loaded_keys.unexpected_keys) == 0, "Unexpected keys in state dict"
     output = model(inputs)
 
     assert torch.equal(
