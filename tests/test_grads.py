@@ -1,8 +1,7 @@
 import pytest
 import torch
+from lora_adapters import LoraConv2d, LoraEmbedding, LoraLinear, LoraMergedLinear
 from torch import nn
-
-from lora_adapters import LoraConv2d, LoraEmbedding, LoraLinear
 
 
 @pytest.mark.parametrize("input_dim,bias", [[64, True], [128, False]])
@@ -32,3 +31,13 @@ def test_linear(input_dim, bias):
     lora_layer(input_tensor).sum().backward()
 
     assert lora_layer.weight.grad is None, "LoraLinear has Grads in original weight"
+
+
+@pytest.mark.parametrize("input_dim,bias", [[64, True], [128, False]])
+def test_merged_linear(input_dim, bias):
+    layer = nn.Linear(input_dim, 3 * 16, bias=bias)
+    lora_layer = LoraMergedLinear(layer, rank=4, enable_lora=[False, False, True])
+    input_tensor = torch.randn(1, input_dim)
+    lora_layer(input_tensor).sum().backward()
+
+    assert lora_layer.weight.grad is None, "LoraMergedLinear has Grads in original weight"
