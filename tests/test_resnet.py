@@ -7,7 +7,7 @@ from torch.optim import AdamW
 from lora_adapters import LoraConv2d, apply_adapter, freeze_bn, lora_state_dict, mark_only_lora_as_trainable, undo_lora
 
 
-def test_resnet50():
+def test_resnet50_initialization():
     input_tensor = torch.randn(1, 3, 224, 224)
     model = timm.create_model("resnet50", pretrained=False)
     output = model(input_tensor)  # Output has to go before adapter because adapter changes model in place
