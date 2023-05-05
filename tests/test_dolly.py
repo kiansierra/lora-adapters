@@ -13,7 +13,7 @@ from torch.optim import AdamW
 from transformers import AutoModelForCausalLM
 
 
-@pytest.mark.skip(reason="Dolly model is too large to download")
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="Dolly model is too large to download")
 def test_dolly_initialization():
     input_tensor = torch.randint(0, 512, (1, 256)).to("cuda")
     model = AutoModelForCausalLM.from_pretrained(
@@ -26,7 +26,7 @@ def test_dolly_initialization():
     assert torch.equal(output, output_lora), "Adapter returns different outputs than original model"
 
 
-@pytest.mark.skip(reason="Dolly model is too large to download")
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="Dolly model is too large to download")
 def test_dolly_conversion():
     model = AutoModelForCausalLM.from_pretrained(
         "databricks/dolly-v2-3b", device_map="auto", torch_dtype=torch.bfloat16
@@ -39,7 +39,7 @@ def test_dolly_conversion():
     assert len(original_emb_modules) == 0, "Adapter Hasn't converted all Embedding layers"
 
 
-@pytest.mark.skip(reason="Dolly model is too large to download")
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="Dolly model is too large to download")
 @pytest.mark.parametrize("bias", ["all", "lora_only", "none"])
 def test_dolly_training(bias):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -64,7 +64,7 @@ def test_dolly_training(bias):
     assert torch.equal(output, output_lora), "Adapter returns different outputs than original model after training"
 
 
-@pytest.mark.skip(reason="Dolly model is too large to download")
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="Dolly model is too large to download")
 @pytest.mark.parametrize("bias", ["all", "lora_only", "none"])
 def test_dolly_updates(bias):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")

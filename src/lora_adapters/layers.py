@@ -112,6 +112,11 @@ class LoraEmbedding(nn.Embedding, LoRALayer):
             layer.weight.data += self.weight_delta
         return layer
 
+    def extra_repr(self) -> str:
+        s = nn.Embedding.extra_repr(self)
+        extra = ", rank={}".format(self.rank)
+        return s + extra
+
 
 class LoraLinear(nn.Linear, LoRALayer):
     # LoRA implemented in a dense layer
@@ -199,6 +204,11 @@ class LoraLinear(nn.Linear, LoRALayer):
         if self.input_kwargs["bias"]:
             layer.bias.data = self.bias.data
         return layer
+
+    def extra_repr(self) -> str:
+        s = nn.Linear.extra_repr(self)
+        extra = ", rank={}".format(self.rank)
+        return s + extra
 
 
 class LoraMergedLinear(nn.Linear, LoRALayer):
@@ -311,6 +321,11 @@ class LoraMergedLinear(nn.Linear, LoRALayer):
             layer.bias.data = self.bias.data
         return layer
 
+    def extra_repr(self) -> str:
+        s = nn.Linear.extra_repr(self)
+        extra = ", rank={}, enable_lora={}".format(self.rank, self.enable_lora)
+        return s + extra
+
 
 class LoraConv2d(nn.Conv2d, LoRALayer):
     # LoRA implemented in a dense layer
@@ -395,6 +410,11 @@ class LoraConv2d(nn.Conv2d, LoRALayer):
         if self.input_kwargs["bias"]:
             layer.bias.data = self.bias.data
         return layer
+
+    def extra_repr(self) -> str:
+        s = nn.Conv2d.extra_repr(self)
+        extra = ", rank={}".format(self.rank)
+        return s + extra
 
 
 LoraEmbeddingType = Type[LoraEmbedding]
