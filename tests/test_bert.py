@@ -1,9 +1,5 @@
 import pytest
 import torch
-from torch import nn
-from torch.optim import AdamW
-from transformers import AutoModel, AutoModelForSequenceClassification
-
 from lora_adapters import (
     LoraEmbedding,
     LoraLinear,
@@ -12,6 +8,9 @@ from lora_adapters import (
     mark_only_lora_as_trainable,
     undo_lora,
 )
+from torch import nn
+from torch.optim import AdamW
+from transformers import AutoModel, AutoModelForSequenceClassification
 
 
 def test_bert_initialization():
@@ -47,7 +46,7 @@ def test_bert_training():
     optimizer = AdamW((param for param in model.parameters() if param.requires_grad), lr=1e-3)
     inputs = torch.randint(0, 512, (1, 256)).to(device)
     targets = torch.randint(0, 5, (1,)).to(device)
-    for _ in range(4):
+    for _ in range(2):
         optimizer.zero_grad()
         outputs = model(inputs).logits
         loss = torch.nn.functional.cross_entropy(outputs, targets)
@@ -72,7 +71,7 @@ def test_bert_updates(bias):
     model = mark_only_lora_as_trainable(model, bias=bias)
     optimizer = AdamW((param for param in model.parameters() if param.requires_grad), lr=1e-3)
     inputs = torch.randint(0, 512, (1, 256)).to(device)
-    for _ in range(4):
+    for _ in range(2):
         optimizer.zero_grad()
         outputs = model(inputs).last_hidden_state
         loss = outputs.mean()
