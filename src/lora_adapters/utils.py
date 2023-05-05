@@ -21,6 +21,7 @@ def apply_adapter(
     lora_alpha: float = 1.0,
     regex_pattern: str = ".*",
     name_list: Optional[List[str]] = None,
+    **kwargs,
 ) -> nn.Module:
     """Adapts the models layer to the adapter_class.
     Args:
@@ -31,6 +32,7 @@ def apply_adapter(
         rank: Rank to adapt the layer.
             Default: ``None``
         regex_pattern: Regular expression to match the layers to be adapted.
+        **kwargs: Additional arguments to be passed to the adapter class.
     Returns:
         Adapted Model
     """
@@ -43,7 +45,7 @@ def apply_adapter(
         module = model._modules[name]
         module_name_list = name_list + [name]
         if isinstance(module, adapter_class.__bases__[0]) and re.match(regex_pattern, ".".join(module_name_list)):
-            new_modules[name] = adapter_class(module, lora_alpha=lora_alpha, rank=rank)
+            new_modules[name] = adapter_class(module, lora_alpha=lora_alpha, rank=rank, **kwargs)
         else:
             new_modules[name] = apply_adapter(
                 module,
@@ -52,6 +54,7 @@ def apply_adapter(
                 rank=rank,
                 regex_pattern=regex_pattern,
                 name_list=module_name_list,
+                **kwargs,
             )
         del module
     model._modules = new_modules
