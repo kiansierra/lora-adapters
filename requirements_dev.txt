@@ -3,4 +3,5 @@ ruff
 black
 mypy
 timm
+transformers
 pylint
