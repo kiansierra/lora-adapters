@@ -264,7 +264,9 @@ class LoraMergedLinear(nn.Linear, LoRALayer):
     def zero_pad(self, input):
         result = input.new_zeros((*input.shape[:-1], self.out_features))
         result = result.view(-1, self.out_features)
-        result[:, self.lora_ind] = input.reshape(-1, self.out_features // len(self.enable_lora) * sum(self.enable_lora))
+        result[:, self.lora_ind] = input.reshape(
+            -1, self.out_features // len(self.enable_lora) * sum(self.enable_lora)
+        )
         return result.view((*input.shape[:-1], self.out_features))
 
     def T(self, w):
