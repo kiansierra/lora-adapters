@@ -1,11 +1,9 @@
 name: Publish Python 🐍 distributions 📦 to PyPI and TestPyPI
 
 on:
-  workflow_run:
-    workflows: ["Run Tests", "Code Consistency"]
-    branches: [main]
-    types:
-      - completed
+  push:
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+"
 
 jobs:
   build-n-publish:
