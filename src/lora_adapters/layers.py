@@ -112,6 +112,11 @@ class LoraEmbedding(nn.Embedding, LoRALayer):
             layer.weight.data += self.weight_delta
         return layer
 
+    def extra_repr(self) -> str:
+        s = nn.Embedding.extra_repr(self)
+        extra = ", rank={}".format(self.rank)
+        return s + extra
+
 
 class LoraLinear(nn.Linear, LoRALayer):
     # LoRA implemented in a dense layer
@@ -200,6 +205,11 @@ class LoraLinear(nn.Linear, LoRALayer):
             layer.bias.data = self.bias.data
         return layer
 
+    def extra_repr(self) -> str:
+        s = nn.Linear.extra_repr(self)
+        extra = ", rank={}".format(self.rank)
+        return s + extra
+
 
 class LoraMergedLinear(nn.Linear, LoRALayer):
     # LoRA implemented in a dense layer
@@ -254,9 +264,7 @@ class LoraMergedLinear(nn.Linear, LoRALayer):
     def zero_pad(self, input):
         result = input.new_zeros((*input.shape[:-1], self.out_features))
         result = result.view(-1, self.out_features)
-        result[:, self.lora_ind] = input.reshape(
-            -1, self.out_features // len(self.enable_lora) * sum(self.enable_lora)
-        )
+        result[:, self.lora_ind] = input.reshape(-1, self.out_features // len(self.enable_lora) * sum(self.enable_lora))
         return result.view((*input.shape[:-1], self.out_features))
 
     def T(self, w):
@@ -310,6 +318,11 @@ class LoraMergedLinear(nn.Linear, LoRALayer):
         if self.input_kwargs["bias"]:
             layer.bias.data = self.bias.data
         return layer
+
+    def extra_repr(self) -> str:
+        s = nn.Linear.extra_repr(self)
+        extra = ", rank={}, enable_lora={}".format(self.rank, self.enable_lora)
+        return s + extra
 
 
 class LoraConv2d(nn.Conv2d, LoRALayer):
@@ -395,6 +408,11 @@ class LoraConv2d(nn.Conv2d, LoRALayer):
         if self.input_kwargs["bias"]:
             layer.bias.data = self.bias.data
         return layer
+
+    def extra_repr(self) -> str:
+        s = nn.Conv2d.extra_repr(self)
+        extra = ", rank={}".format(self.rank)
+        return s + extra
 
 
 LoraEmbeddingType = Type[LoraEmbedding]
