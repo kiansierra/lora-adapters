@@ -356,7 +356,7 @@ class LoraConv2d(nn.Conv2d, LoRALayer):
         if self.rank > 0 and not self.merged:
             return F.conv2d(
                 input,
-                self.weight + (self.lora_B @ self.lora_A).view(self.weight.shape) * self.scaling,
+                self.weight + self.weight_delta,
                 self.bias,
                 self.stride,
                 self.padding,
