@@ -13,7 +13,7 @@ setup(
     long_description_content_type="text/markdown",
     package_dir={"": "src"},
     packages=find_packages("src"),
-    # url="https://github.com/kiansierra/LowRankAdapters",
+    url="https://github.com/kiansierra/lora-adapters",
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
