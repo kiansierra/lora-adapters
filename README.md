@@ -38,6 +38,13 @@ model = undo_lora(model)
 torch.save(model.state_dict(), 'model.ckpt')
 ```
 
+## Examples
+| Notebook | Colab Link | Kaggle Link |
+| -------- | ---------- | ----------- |
+| bert-lora | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/kiansierra/lora-adapters/blob/main/examples/bert-lora.ipynb) | [![Kaggle](https://kaggle.com/static/images/open-in-kaggle.svg)](https://kaggle.com/kernels/welcome?src=https://github.com/kiansierra/lora-adapters/blob/main/examples/bert-lora.ipynb) |
+| dolly-lora  | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/kiansierra/lora-adapters/blob/main/examples/dolly-lora.ipynb) | [![Kaggle](https://kaggle.com/static/images/open-in-kaggle.svg)](https://kaggle.com/kernels/welcome?src=https://github.com/kiansierra/lora-adapters/blob/main/examples/dolly-lora.ipynb) |
+| resnet-lora | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/kiansierra/lora-adapters/blob/main/examples/resnet-lora.ipynb) | [![Kaggle](https://kaggle.com/static/images/open-in-kaggle.svg)](https://kaggle.com/kernels/welcome?src=https://github.com/kiansierra/lora-adapters/blob/main/examples/resnet-lora.ipynb) |
+
 
 
 ## Warnings
