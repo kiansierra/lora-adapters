@@ -5,6 +5,7 @@ __pycache__/
 
 training.ipynb
 lora.ipynb
+*/test_trainer/*
 *.vscode
 # C extensions
 *.so
