@@ -140,7 +140,7 @@ def lora_state_dict(model: nn.Module, bias: BiasTypes = "none") -> Dict[str, tor
         return {**lora_dict_weights, **lora_dict_bias}
 
 
-def freeze_bn(model: nn.Module) -> Dict[str, torch.Tensor]:
+def freeze_bn(model: nn.Module) -> nn.Module:
     """
     Args:
         model: Model to obtain the LoRa state dict.

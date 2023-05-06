@@ -3,7 +3,9 @@ __pycache__/
 *.py[cod]
 *$py.class
 
-*.ipynb
+training.ipynb
+lora.ipynb
+*/test_trainer/*
 *.vscode
 # C extensions
 *.so

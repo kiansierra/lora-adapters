@@ -9,6 +9,7 @@ from typing import List, Type, Union
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from torch import Tensor
 
 __all__ = ["LoraEmbedding", "LoraLinear", "LoraMergedLinear", "LoraConv2d"]
 
@@ -19,7 +20,7 @@ class LoRALayer:
     def __init__(
         self,
         rank: int,
-        lora_alpha: int,
+        lora_alpha: float,
         lora_dropout: float,
         merge_weights: bool,
     ):
@@ -29,7 +30,7 @@ class LoRALayer:
         if lora_dropout > 0.0:
             self.lora_dropout = nn.Dropout(p=lora_dropout)
         else:
-            self.lora_dropout = lambda x: x
+            self.lora_dropout = nn.Identity()
         # Mark the weight as unmerged
         self.merged = False
         self.merge_weights = merge_weights
@@ -41,7 +42,7 @@ class LoraEmbedding(nn.Embedding, LoRALayer):
         self,
         layer: nn.Embedding,
         rank: int = 0,
-        lora_alpha: int = 1,
+        lora_alpha: float = 1,
         merge_weights: bool = True,
     ):
         named_inputs = [arg for arg in inspect.getfullargspec(nn.Embedding).args if arg != "self"]
@@ -58,17 +59,17 @@ class LoraEmbedding(nn.Embedding, LoRALayer):
             self.weight.requires_grad = False
         self.reset_parameters()
 
-    def reset_parameters(self):
+    def reset_parameters(self) -> None:
         if hasattr(self, "lora_A"):
             # initialize A the same way as the default for nn.Linear and B to zero
             nn.init.zeros_(self.lora_A)
             nn.init.normal_(self.lora_B)
 
     @property
-    def weight_delta(self) -> torch.Tensor:
+    def weight_delta(self) -> Tensor:
         return (self.lora_B @ self.lora_A).transpose(0, 1) * self.scaling
 
-    def train(self, mode: bool = True):
+    def train(self, mode: bool = True) -> nn.Embedding:
         nn.Embedding.train(self, mode)
         if mode:
             if self.merge_weights and self.merged:
@@ -84,7 +85,7 @@ class LoraEmbedding(nn.Embedding, LoRALayer):
                 self.merged = True
         return self
 
-    def forward(self, input: torch.Tensor):
+    def forward(self, input: Tensor) -> Tensor:
         if self.rank > 0 and not self.merged:
             result = nn.Embedding.forward(self, input)
             if self.rank > 0:
@@ -124,7 +125,7 @@ class LoraLinear(nn.Linear, LoRALayer):
         self,
         layer: nn.Linear,
         rank: int = 0,
-        lora_alpha: int = 1,
+        lora_alpha: float = 1,
         lora_dropout: float = 0.0,
         fan_in_fan_out: bool = False,  # Set this to True if the layer to replace stores weight like (fan_in, fan_out)
         merge_weights: bool = True,
@@ -153,20 +154,20 @@ class LoraLinear(nn.Linear, LoRALayer):
         if self.input_kwargs["bias"]:
             self.bias.data = layer.bias.data.clone()
 
-    def reset_parameters(self):
+    def reset_parameters(self) -> None:
         if hasattr(self, "lora_A"):
             # initialize A the same way as the default for nn.Linear and B to zero
             nn.init.kaiming_uniform_(self.lora_A, a=math.sqrt(5))
             nn.init.zeros_(self.lora_B)
 
-    def T(self, w):
+    def T(self, w: Tensor) -> Tensor:
         return w.transpose(0, 1) if self.fan_in_fan_out else w
 
     @property
-    def weight_delta(self) -> torch.Tensor:
+    def weight_delta(self) -> Tensor:
         return self.T(self.lora_B @ self.lora_A) * self.scaling
 
-    def train(self, mode: bool = True):
+    def train(self, mode: bool = True) -> nn.Linear:
         nn.Linear.train(self, mode)
         if mode:
             if self.merge_weights and self.merged:
@@ -182,7 +183,7 @@ class LoraLinear(nn.Linear, LoRALayer):
                 self.merged = True
         return self
 
-    def forward(self, input: torch.Tensor):
+    def forward(self, input: Tensor) -> Tensor:
         if self.rank > 0 and not self.merged:
             result = F.linear(input, self.T(self.weight), bias=self.bias)
             if self.rank > 0:
@@ -217,7 +218,7 @@ class LoraMergedLinear(nn.Linear, LoRALayer):
         self,
         layer: nn.Linear,
         rank: int = 0,
-        lora_alpha: int = 1,
+        lora_alpha: float = 1,
         lora_dropout: float = 0.0,
         enable_lora: List[bool] = [True, False, True],
         fan_in_fan_out: bool = False,
@@ -255,13 +256,13 @@ class LoraMergedLinear(nn.Linear, LoRALayer):
         if self.input_kwargs["bias"]:
             self.bias.data = layer.bias.data.clone()
 
-    def reset_parameters(self):
+    def reset_parameters(self) -> None:
         if hasattr(self, "lora_A"):
             # initialize A the same way as the default for nn.Linear and B to zero
             nn.init.kaiming_uniform_(self.lora_A, a=math.sqrt(5))
             nn.init.zeros_(self.lora_B)
 
-    def zero_pad(self, input):
+    def zero_pad(self, input: Tensor) -> Tensor:
         result = input.new_zeros((*input.shape[:-1], self.out_features))
         result = result.view(-1, self.out_features)
         result[:, self.lora_ind] = input.reshape(
@@ -273,7 +274,7 @@ class LoraMergedLinear(nn.Linear, LoRALayer):
         return w.transpose(0, 1) if self.fan_in_fan_out else w
 
     @property
-    def weight_delta(self) -> torch.Tensor:
+    def weight_delta(self) -> Tensor:
         delta_w = (
             F.conv1d(self.lora_A.data.unsqueeze(0), self.lora_B.data.unsqueeze(-1), groups=sum(self.enable_lora))
             .squeeze(0)
@@ -281,7 +282,7 @@ class LoraMergedLinear(nn.Linear, LoRALayer):
         )
         return self.zero_pad(self.T(delta_w * self.scaling)).transpose(0, 1)
 
-    def train(self, mode: bool = True):
+    def train(self, mode: bool = True) -> nn.Linear:
         nn.Linear.train(self, mode)
         if mode:
             if self.merge_weights and self.merged:
@@ -296,7 +297,7 @@ class LoraMergedLinear(nn.Linear, LoRALayer):
                     self.weight.data += self.weight_delta
                 self.merged = True
 
-    def forward(self, input: torch.Tensor):
+    def forward(self, input: Tensor) -> Tensor:
         if self.merged:
             return F.linear(input, self.T(self.weight), bias=self.bias)
         else:
@@ -333,7 +334,7 @@ class LoraConv2d(nn.Conv2d, LoRALayer):
         self,
         layer: nn.Conv2d,
         rank: int = 0,
-        lora_alpha: int = 1,
+        lora_alpha: float = 1,
         lora_dropout: float = 0.0,
         merge_weights: bool = True,
     ):
@@ -362,17 +363,17 @@ class LoraConv2d(nn.Conv2d, LoRALayer):
         if self.input_kwargs["bias"]:
             self.bias.data = layer.bias.data.clone()
 
-    def reset_parameters(self):
+    def reset_parameters(self) -> None:
         if hasattr(self, "lora_A"):
             # initialize A the same way as the default for nn.Linear and B to zero
             nn.init.kaiming_uniform_(self.lora_A, a=math.sqrt(5))
             nn.init.zeros_(self.lora_B)
 
     @property
-    def weight_delta(self) -> torch.Tensor:
+    def weight_delta(self) -> Tensor:
         return (self.lora_B @ self.lora_A).view(self.weight.shape) * self.scaling
 
-    def train(self, mode: bool = True):
+    def train(self, mode: bool = True) -> nn.Conv2d:
         nn.Conv2d.train(self, mode)
         if mode:
             if self.merge_weights and self.merged:
@@ -386,7 +387,7 @@ class LoraConv2d(nn.Conv2d, LoRALayer):
                 self.merged = True
         return self
 
-    def forward(self, input: torch.Tensor):
+    def forward(self, input: Tensor) -> Tensor:
         if self.rank > 0 and not self.merged:
             return F.conv2d(
                 input,
